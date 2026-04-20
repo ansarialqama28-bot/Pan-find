@@ -1,61 +1,94 @@
-import requests
-from bs4 import BeautifulSoup
+import os
+import time
 from flask import Flask, request, jsonify
 from flask_cors import CORS
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.service import Service
+from webdriver_manager.chrome import ChromeDriverManager
 
 app = Flask(__name__)
-CORS(app) # Doosri website (aapke frontend) se request allow karne ke liye
+CORS(app)
 
 @app.route('/fetch-heloprint', methods=['POST'])
 def fetch_from_heloprint():
     data = request.get_json()
-    user_number = data.get('number')
+    # Frontend se aane wala Aadhaar number (placeholder logic)
+    user_aadhaar = data.get('number') 
     
-    if not user_number:
-        return jsonify({"status": "error", "message": "Number is required!"})
+    if not user_aadhaar:
+        return jsonify({"status": "error", "message": "Aadhaar number is required!"})
 
-    # Session create karna (taki cookies maintain rahein)
-    session = requests.Session()
+    # Render/Linux par chalne ke liye Headless Chrome settings
+    chrome_options = Options()
+    chrome_options.add_argument("--headless")
+    chrome_options.add_argument("--no-sandbox")
+    chrome_options.add_argument("--disable-dev-shm-usage")
 
-    # ⚠️ DHYAN DEIN: Yahan aapko heloprint.xyz ka exact POST URL dalna hoga
-    # Jab aap unki site par submit button dabate hain, toh data kis URL par jata hai
-    target_post_url = "https://heloprint.xyz/submit_action_url" # Isko replace karein
-
-    # ⚠️ DHYAN DEIN: Payload mein input field ka exact 'name' attribute use karein
-    payload = {
-        "aadhaar_input_name": user_number, # 'aadhaar_input_name' ko real name se badlein
-    }
-
-    # Browser jaisa dikhne ke liye User-Agent add karna zaroori hai
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36"
-    }
+    # Chrome Driver setup
+    service = Service(ChromeDriverManager().install())
+    driver = webdriver.Chrome(service=service, options=chrome_options)
+    wait = WebDriverWait(driver, 20) # 20 second tak wait karega elements ke liye
 
     try:
-        # heloprint.xyz par data submit karna
-        response = session.post(target_post_url, data=payload, headers=headers)
-        
-        # Agar submission successful raha
-        if response.status_code == 200:
-            # Us page ka HTML parse karna BeautifulSoup se
-            soup = BeautifulSoup(response.text, 'html.parser')
-            
-            # Maan lijiye result kisi specific class ya id mein aata hai
-            # Usko yahan find kar sakte hain. Example:
-            # result_div = soup.find('div', class_='result-box')
-            # final_text = result_div.text if result_div else "No result found"
-            
-            # Abhi ke liye hum pura HTML text bhej rahe hain
-            return jsonify({
-                "status": "success", 
-                "message": "Data fetched successfully",
-                "html_response": response.text[:500] # Sirf shuruwaat ka 500 character bhej rahe hain test karne ke liye
-            })
-        else:
-            return jsonify({"status": "error", "message": f"Target site returned status: {response.status_code}"})
-            
+        # 1. Website par jana
+        driver.get("https://heloprint.xyz")
+
+        # 2. Login button par click karna (Aapka diya hua XPath)
+        login_nav_btn = wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="navMenu"]/a[4]')))
+        login_nav_btn.click()
+
+        # 3. Login Form bharna (ID "username" aur "password")
+        username_field = wait.until(EC.presence_of_element_located((By.ID, "username")))
+        username_field.send_keys("7619815009")
+
+        password_field = driver.find_element(By.ID, "password")
+        password_field.send_keys("Noor@1997")
+
+        # 4. Sign In button par click karna (Class: fxt-btn-fill)
+        sign_in_btn = driver.find_element(By.CLASS_NAME, "fxt-btn-fill")
+        sign_in_btn.click()
+
+        # 5. Pan Card Services par click karna (Aapka diya hua XPath)
+        pan_services = wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="menu"]/li[10]/a/div[2]')))
+        pan_services.click()
+
+        # 6. Pan Number Find option par click karna (Aapka diya hua XPath)
+        pan_find_option = wait.until(EC.element_to_be_clickable((By.XPATH, '/html/body/div[2]/div[3]/div[2]/div/div[1]/a/div[1]')))
+        pan_find_option.click()
+
+        # 7. Aadhaar number input field me number fill karna (Aapka diya hua XPath)
+        # Note: user_aadhaar me user ka bheja gaya number jayega
+        aadhaar_field = wait.until(EC.presence_of_element_located((By.XPATH, '//*[@id="aadhaar_no"]')))
+        aadhaar_field.send_keys(user_aadhaar)
+
+        # 8. Verify Now button par click karna (Aapka diya hua XPath)
+        verify_btn = wait.until(EC.element_to_be_clickable((By.XPATH, '/html/body/div[2]/div[3]/div/div[2]/div/div[1]/div/div/form/div[2]/button')))
+        verify_btn.click()
+
+        # 9. Result aane ka thoda wait (Kyunki page process hota hai)
+        time.sleep(5)
+
+        # 10. Result ko extract karna
+        # Yahan aapko result wale element ka id ya xpath dalna hoga
+        # Filhaal hum page ka title ya success message return kar rahe hain
+        return jsonify({
+            "status": "success", 
+            "message": "Process Completed",
+            "url_reached": driver.current_url
+        })
+
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)})
 
+    finally:
+        # Browser ko band karna mat bhulein
+        driver.quit()
+
 if __name__ == '__main__':
-    app.run(debug=True)
+    # Render port assign karne ke liye
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host='0.0.0.0', port=port)
