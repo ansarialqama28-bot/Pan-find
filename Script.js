@@ -1,54 +1,26 @@
-// Jab poora page load ho jaye, tab button par click event lagao
-document.addEventListener('DOMContentLoaded', function() {
-    const searchBtn = document.getElementById('searchBtn');
-    if (searchBtn) {
-        searchBtn.addEventListener('click', fetchPanDetails);
-        console.log("Search button is now active.");
-    }
-});
-
-async function fetchPanDetails() {
-    const aadhaar = document.getElementById('aadhaarNumber').value;
-    const resultDiv = document.getElementById('resultDisplay');
-    const loader = document.getElementById('loader');
-
-    if(!aadhaar) {
-        alert("Please enter an Aadhaar number.");
-        return;
-    }
-
-    // Loader dikhana aur purana result chupana
-    resultDiv.style.display = 'none';
-    loader.style.display = 'block';
-
+// Ye function Frontend JS (Blogger) se call hoga
+async function sendDataToPythonApp(aadhaarNumber) {
     try {
-        // Aapka exact Render Backend URL
+        // Aapka Render Backend URL
         const renderBackendUrl = 'https://pan-find.onrender.com/fetch-heloprint';
         
+        // Data Python app.py ko bhej rahe hain
         const response = await fetch(renderBackendUrl, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ number: aadhaar })
+            body: JSON.stringify({ number: aadhaarNumber })
         });
 
+        // Python app.py se jo result mila
         const data = await response.json();
         
-        // Loader chupana
-        loader.style.display = 'none';
-        resultDiv.style.display = 'block';
+        // Ye result wapas Blogger wale Frontend JS ko return kar dega
+        return data; 
 
-        if(data.status === "success") {
-            // Backend se jo result milega use dikhana
-            resultDiv.innerHTML = "<strong>Result:</strong><br>" + data.message;
-        } else {
-            resultDiv.innerHTML = "<span style='color:red;'>Error: " + data.message + "</span>";
-        }
     } catch (error) {
-        loader.style.display = 'none';
-        resultDiv.style.display = 'block';
-        resultDiv.innerHTML = "<span style='color:red;'>Server connection failed! Make sure your Render app is running properly.</span>";
-        console.error("Fetch Error:", error);
+        // Agar connection fail hua to error return karega
+        return { status: "error", message: "Server connection failed! Make sure Render is running." };
     }
 }
