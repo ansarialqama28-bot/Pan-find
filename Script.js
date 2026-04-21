@@ -1,3 +1,12 @@
+// Jab poora page load ho jaye, tab button par click event lagao
+document.addEventListener('DOMContentLoaded', function() {
+    const searchBtn = document.getElementById('searchBtn');
+    if (searchBtn) {
+        searchBtn.addEventListener('click', fetchPanDetails);
+        console.log("Search button is now active.");
+    }
+});
+
 async function fetchPanDetails() {
     const aadhaar = document.getElementById('aadhaarNumber').value;
     const resultDiv = document.getElementById('resultDisplay');
@@ -13,7 +22,7 @@ async function fetchPanDetails() {
     loader.style.display = 'block';
 
     try {
-        // Aapka exact Render Backend URL fetch-heloprint endpoint ke sath
+        // Aapka exact Render Backend URL
         const renderBackendUrl = 'https://pan-find.onrender.com/fetch-heloprint';
         
         const response = await fetch(renderBackendUrl, {
@@ -26,11 +35,12 @@ async function fetchPanDetails() {
 
         const data = await response.json();
         
-        // Loader chupana aur result dikhana
+        // Loader chupana
         loader.style.display = 'none';
         resultDiv.style.display = 'block';
 
         if(data.status === "success") {
+            // Backend se jo result milega use dikhana
             resultDiv.innerHTML = "<strong>Result:</strong><br>" + data.message;
         } else {
             resultDiv.innerHTML = "<span style='color:red;'>Error: " + data.message + "</span>";
@@ -39,5 +49,6 @@ async function fetchPanDetails() {
         loader.style.display = 'none';
         resultDiv.style.display = 'block';
         resultDiv.innerHTML = "<span style='color:red;'>Server connection failed! Make sure your Render app is running properly.</span>";
+        console.error("Fetch Error:", error);
     }
 }
