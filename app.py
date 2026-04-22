@@ -24,7 +24,8 @@ def fetch_from_heloprint():
 
     try:
         chrome_options = Options()
-        chrome_options.add_argument("--headless")
+        # "new" headless mode bot detection se bachne mein zyada madad karta hai
+        chrome_options.add_argument("--headless=new") 
         chrome_options.add_argument("--no-sandbox")
         chrome_options.add_argument("--disable-dev-shm-usage")
         chrome_options.add_argument("--window-size=1920,1080")
@@ -37,37 +38,36 @@ def fetch_from_heloprint():
         step = "Opening Login Page Directly"
         driver.get("https://heloprint.xyz/login.php")
         
-        # JADOO: Website ke background JavaScript ko settle hone ka time de rahe hain
-        time.sleep(3) 
+        # Page ko poora load hone dete hain
+        time.sleep(4) 
 
         step = "Filling Username"
-        # Ab hum 'clickable' hone ka wait kar rahe hain aur pehle field ko clear kar rahe hain
-        username_field = wait.until(EC.element_to_be_clickable((By.ID, "username")))
+        # presence_of_element_located use kar rahe hain taaki overlay ki wajah se error na aaye
+        username_field = wait.until(EC.presence_of_element_located((By.ID, "username")))
         username_field.clear() 
         username_field.send_keys("7619815009")
 
         step = "Filling Password"
-        password_field = wait.until(EC.element_to_be_clickable((By.ID, "password")))
+        password_field = driver.find_element(By.ID, "password")
         password_field.clear()
         password_field.send_keys("Noor@1997")
 
         step = "Clicking Sign In button"
-        sign_in_btn = wait.until(EC.element_to_be_clickable((By.CLASS_NAME, "fxt-btn-fill")))
-        sign_in_btn.click()
+        sign_in_btn = driver.find_element(By.CLASS_NAME, "fxt-btn-fill")
+        # JADOO: JavaScript ke zariye click karwa rahe hain, jo hamesha 100% kaam karta hai
+        driver.execute_script("arguments[0].click();", sign_in_btn)
 
-        # Login hone ke baad Dashboard load hone ka time (bahut zaroori)
         time.sleep(4)
 
         step = "Waiting for Pan Card Services option"
-        pan_services = wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="menu"]/li[10]/a/div[2]')))
-        pan_services.click()
+        pan_services = wait.until(EC.presence_of_element_located((By.XPATH, '//*[@id="menu"]/li[10]/a/div[2]')))
+        driver.execute_script("arguments[0].click();", pan_services)
 
         step = "Clicking Pan Number Find option"
-        pan_find_option = wait.until(EC.element_to_be_clickable((By.XPATH, '/html/body/div[2]/div[3]/div[2]/div/div[1]/a/div[1]')))
-        pan_find_option.click()
+        pan_find_option = wait.until(EC.presence_of_element_located((By.XPATH, '/html/body/div[2]/div[3]/div[2]/div/div[1]/a/div[1]')))
+        driver.execute_script("arguments[0].click();", pan_find_option)
         
-        # Page badalne par thoda wait
-        time.sleep(2)
+        time.sleep(3)
 
         step = "Entering Aadhaar Number"
         aadhaar_field = wait.until(EC.presence_of_element_located((By.XPATH, '//*[@id="aadhaar_no"]')))
@@ -75,8 +75,8 @@ def fetch_from_heloprint():
         aadhaar_field.send_keys(user_aadhaar)
 
         step = "Clicking Verify Now button"
-        verify_btn = wait.until(EC.element_to_be_clickable((By.XPATH, '/html/body/div[2]/div[3]/div/div[2]/div/div[1]/div/div/form/div[2]/button')))
-        verify_btn.click()
+        verify_btn = wait.until(EC.presence_of_element_located((By.XPATH, '/html/body/div[2]/div[3]/div/div[2]/div/div[1]/div/div/form/div[2]/button')))
+        driver.execute_script("arguments[0].click();", verify_btn)
 
         step = "Waiting for final result"
         time.sleep(5)
@@ -87,10 +87,14 @@ def fetch_from_heloprint():
         })
 
     except Exception as e:
-        error_str = str(e).strip()
-        if not error_str or error_str == "Message:":
-            error_str = "Timeout: 20 seconds lag gaye par element nahi mila."
-        return jsonify({"status": "error", "message": f"Failed at step: '{step}'. Error detail: {error_str}"})
+        # SUPER DEBUG: Agar fail hua toh humein current website ka URL aur Title print karke dega
+        curr_url = driver.current_url if driver else "Unknown URL"
+        curr_title = driver.title if driver else "Unknown Title"
+        
+        return jsonify({
+            "status": "error", 
+            "message": f"Failed at step: '{step}'.<br><b>Current URL:</b> {curr_url}<br><b>Page Title:</b> {curr_title}"
+        })
 
     finally:
         if driver:
