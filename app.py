@@ -1,4 +1,3 @@
-
 import os
 import time
 from flask import Flask, request, jsonify
@@ -21,7 +20,7 @@ def fetch_from_heloprint():
         return jsonify({"status": "error", "message": "Aadhaar number is required!"})
 
     driver = None 
-    step = "Starting Chrome" # Yahan se hum step track karenge
+    step = "Starting Chrome"
 
     try:
         chrome_options = Options()
@@ -29,21 +28,21 @@ def fetch_from_heloprint():
         chrome_options.add_argument("--no-sandbox")
         chrome_options.add_argument("--disable-dev-shm-usage")
         
-        # Ye line website ko batayegi ki hum Windows PC se aaye hain (Bot block se bachne ke liye)
-        chrome_options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+        # === Desktop Mode (Full HD 1920x1080) ===
+        chrome_options.add_argument("--window-size=1920,1080")
         
+        # Browser ko asli PC jaisa dikhane ke liye
+        chrome_options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
         chrome_options.binary_location = "/opt/render/project/.render/chrome/opt/google/chrome/google-chrome"
 
         driver = webdriver.Chrome(options=chrome_options)
         wait = WebDriverWait(driver, 20)
 
-        step = "Opening heloprint.xyz"
-        driver.get("https://heloprint.xyz")
+        # === DIRECT LOGIN PAGE PAR JANA ===
+        step = "Opening Login Page Directly"
+        driver.get("https://heloprint.xyz/login.php")
 
-        step = "Waiting for Login button on Nav Menu"
-        login_nav_btn = wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="navMenu"]/a[4]')))
-        login_nav_btn.click()
-
+        # Homepage wale Nav Menu ki zaroorat khatam! Seedha Username dalo.
         step = "Filling Username"
         username_field = wait.until(EC.presence_of_element_located((By.ID, "username")))
         username_field.send_keys("7619815009")
@@ -82,11 +81,8 @@ def fetch_from_heloprint():
 
     except Exception as e:
         error_str = str(e).strip()
-        # Agar error message khali ho, toh hum khud ka message dalenge
         if not error_str or error_str == "Message:":
-            error_str = "Timeout: 20 seconds lag gaye par button nahi mila."
-            
-        # Ab humein exactly pata chalega ki kis STEP par ruka hai
+            error_str = "Timeout: 20 seconds lag gaye par element nahi mila."
         return jsonify({"status": "error", "message": f"Failed at step: '{step}'. Error detail: {error_str}"})
 
     finally:
