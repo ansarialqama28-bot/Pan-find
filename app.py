@@ -20,35 +20,42 @@ def fetch_from_heloprint():
         return jsonify({"status": "error", "message": "Aadhaar number is required!"})
 
     driver = None 
-    step = "Starting Chrome"
+    step = "Starting Chrome in Stealth Mode"
 
     try:
         chrome_options = Options()
-        chrome_options.add_argument("--headless=new") 
+        chrome_options.add_argument("--headless") # Wapas normal headless
         chrome_options.add_argument("--no-sandbox")
         chrome_options.add_argument("--disable-dev-shm-usage")
         chrome_options.add_argument("--window-size=1920,1080")
-        
-        # === ANTI-BOT AUR SSL BYPASS FIXES ===
         chrome_options.add_argument("--ignore-certificate-errors")
-        chrome_options.add_argument("--ignore-ssl-errors")
+        
+        # === STEALTH MODE SETTINGS ===
         chrome_options.add_argument("--disable-blink-features=AutomationControlled")
-        chrome_options.add_argument("--disable-gpu")
+        chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
+        chrome_options.add_experimental_option('useAutomationExtension', False)
         chrome_options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
         
         chrome_options.binary_location = "/opt/render/project/.render/chrome/opt/google/chrome/google-chrome"
 
         driver = webdriver.Chrome(options=chrome_options)
         wait = WebDriverWait(driver, 20)
+        
+        # Webdriver flag ko JavaScript se gayab karna
+        driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
+
+        # === WARM UP BROWSER ===
+        step = "Warming up browser (Google.com)"
+        driver.get("https://www.google.com")
+        time.sleep(2) # Google khol kar 2 second wait
 
         step = "Opening Login Page Directly"
         driver.get("https://heloprint.xyz/login.php")
         
-        time.sleep(5) # Thoda extra time de rahe hain khulne ke liye
+        time.sleep(5) 
         
-        # Agar website ne connection block kiya hai, toh turant bata dega
         if driver.current_url == "data:,":
-            raise Exception("Website ne connection block kar diya (URL khula hi nahi).")
+            raise Exception("Website ka Firewall Render Server ko block kar raha hai (IP Blocked).")
 
         step = "Filling Username"
         username_field = wait.until(EC.presence_of_element_located((By.ID, "username")))
