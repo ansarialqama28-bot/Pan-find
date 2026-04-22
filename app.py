@@ -24,12 +24,18 @@ def fetch_from_heloprint():
 
     try:
         chrome_options = Options()
-        # "new" headless mode bot detection se bachne mein zyada madad karta hai
         chrome_options.add_argument("--headless=new") 
         chrome_options.add_argument("--no-sandbox")
         chrome_options.add_argument("--disable-dev-shm-usage")
         chrome_options.add_argument("--window-size=1920,1080")
+        
+        # === ANTI-BOT AUR SSL BYPASS FIXES ===
+        chrome_options.add_argument("--ignore-certificate-errors")
+        chrome_options.add_argument("--ignore-ssl-errors")
+        chrome_options.add_argument("--disable-blink-features=AutomationControlled")
+        chrome_options.add_argument("--disable-gpu")
         chrome_options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+        
         chrome_options.binary_location = "/opt/render/project/.render/chrome/opt/google/chrome/google-chrome"
 
         driver = webdriver.Chrome(options=chrome_options)
@@ -38,11 +44,13 @@ def fetch_from_heloprint():
         step = "Opening Login Page Directly"
         driver.get("https://heloprint.xyz/login.php")
         
-        # Page ko poora load hone dete hain
-        time.sleep(4) 
+        time.sleep(5) # Thoda extra time de rahe hain khulne ke liye
+        
+        # Agar website ne connection block kiya hai, toh turant bata dega
+        if driver.current_url == "data:,":
+            raise Exception("Website ne connection block kar diya (URL khula hi nahi).")
 
         step = "Filling Username"
-        # presence_of_element_located use kar rahe hain taaki overlay ki wajah se error na aaye
         username_field = wait.until(EC.presence_of_element_located((By.ID, "username")))
         username_field.clear() 
         username_field.send_keys("7619815009")
@@ -54,7 +62,6 @@ def fetch_from_heloprint():
 
         step = "Clicking Sign In button"
         sign_in_btn = driver.find_element(By.CLASS_NAME, "fxt-btn-fill")
-        # JADOO: JavaScript ke zariye click karwa rahe hain, jo hamesha 100% kaam karta hai
         driver.execute_script("arguments[0].click();", sign_in_btn)
 
         time.sleep(4)
@@ -87,13 +94,11 @@ def fetch_from_heloprint():
         })
 
     except Exception as e:
-        # SUPER DEBUG: Agar fail hua toh humein current website ka URL aur Title print karke dega
         curr_url = driver.current_url if driver else "Unknown URL"
-        curr_title = driver.title if driver else "Unknown Title"
         
         return jsonify({
             "status": "error", 
-            "message": f"Failed at step: '{step}'.<br><b>Current URL:</b> {curr_url}<br><b>Page Title:</b> {curr_title}"
+            "message": f"Failed at step: '{step}'.<br><b>Current URL:</b> {curr_url}<br><b>Error:</b> {str(e)}"
         })
 
     finally:
