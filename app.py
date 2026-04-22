@@ -7,8 +7,6 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.chrome.service import Service
-from webdriver_manager.chrome import ChromeDriverManager
 
 app = Flask(__name__)
 CORS(app)
@@ -21,20 +19,20 @@ def fetch_from_heloprint():
     if not user_aadhaar:
         return jsonify({"status": "error", "message": "Aadhaar number is required!"})
 
-    driver = None # Driver ko pehle khali define kar rahe hain
+    driver = None 
 
     try:
-        # Chrome settings ko try block ke andar rakha hai
         chrome_options = Options()
         chrome_options.add_argument("--headless")
         chrome_options.add_argument("--no-sandbox")
         chrome_options.add_argument("--disable-dev-shm-usage")
         
-        # Ye line Render par install hue Chrome ka rasta batati hai
+        # Render par install hue Chrome ka raasta
         chrome_options.binary_location = "/opt/render/project/.render/chrome/opt/google/chrome/google-chrome"
 
-        service = Service(ChromeDriverManager().install())
-        driver = webdriver.Chrome(service=service, options=chrome_options)
+        # YAHAN BADLAAV KIYA HAI: webdriver-manager ko hata diya hai
+        # Ab Selenium khud check karega ki Chrome ka version kya hai aur wahi driver layega
+        driver = webdriver.Chrome(options=chrome_options)
         wait = WebDriverWait(driver, 20)
 
         # 1. Website par jana
@@ -75,7 +73,7 @@ def fetch_from_heloprint():
 
         return jsonify({
             "status": "success", 
-            "message": "Process Completed Successfully!"
+            "message": "Process Completed Successfully! Data Fetched."
         })
 
     except Exception as e:
