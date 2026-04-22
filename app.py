@@ -27,33 +27,36 @@ def fetch_from_heloprint():
         chrome_options.add_argument("--headless")
         chrome_options.add_argument("--no-sandbox")
         chrome_options.add_argument("--disable-dev-shm-usage")
-        
-        # === Desktop Mode (Full HD 1920x1080) ===
         chrome_options.add_argument("--window-size=1920,1080")
-        
-        # Browser ko asli PC jaisa dikhane ke liye
         chrome_options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
         chrome_options.binary_location = "/opt/render/project/.render/chrome/opt/google/chrome/google-chrome"
 
         driver = webdriver.Chrome(options=chrome_options)
         wait = WebDriverWait(driver, 20)
 
-        # === DIRECT LOGIN PAGE PAR JANA ===
         step = "Opening Login Page Directly"
         driver.get("https://heloprint.xyz/login.php")
+        
+        # JADOO: Website ke background JavaScript ko settle hone ka time de rahe hain
+        time.sleep(3) 
 
-        # Homepage wale Nav Menu ki zaroorat khatam! Seedha Username dalo.
         step = "Filling Username"
-        username_field = wait.until(EC.presence_of_element_located((By.ID, "username")))
+        # Ab hum 'clickable' hone ka wait kar rahe hain aur pehle field ko clear kar rahe hain
+        username_field = wait.until(EC.element_to_be_clickable((By.ID, "username")))
+        username_field.clear() 
         username_field.send_keys("7619815009")
 
         step = "Filling Password"
-        password_field = driver.find_element(By.ID, "password")
+        password_field = wait.until(EC.element_to_be_clickable((By.ID, "password")))
+        password_field.clear()
         password_field.send_keys("Noor@1997")
 
         step = "Clicking Sign In button"
-        sign_in_btn = driver.find_element(By.CLASS_NAME, "fxt-btn-fill")
+        sign_in_btn = wait.until(EC.element_to_be_clickable((By.CLASS_NAME, "fxt-btn-fill")))
         sign_in_btn.click()
+
+        # Login hone ke baad Dashboard load hone ka time (bahut zaroori)
+        time.sleep(4)
 
         step = "Waiting for Pan Card Services option"
         pan_services = wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="menu"]/li[10]/a/div[2]')))
@@ -62,9 +65,13 @@ def fetch_from_heloprint():
         step = "Clicking Pan Number Find option"
         pan_find_option = wait.until(EC.element_to_be_clickable((By.XPATH, '/html/body/div[2]/div[3]/div[2]/div/div[1]/a/div[1]')))
         pan_find_option.click()
+        
+        # Page badalne par thoda wait
+        time.sleep(2)
 
         step = "Entering Aadhaar Number"
         aadhaar_field = wait.until(EC.presence_of_element_located((By.XPATH, '//*[@id="aadhaar_no"]')))
+        aadhaar_field.clear()
         aadhaar_field.send_keys(user_aadhaar)
 
         step = "Clicking Verify Now button"
